@@ -1,0 +1,6 @@
+__pycache__/
+*.csv
+*.pdf
+*_checkpoint.txt
+*_batches/
+.env
