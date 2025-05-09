@@ -1,4 +1,4 @@
-# Regulations.gov Comment Scraper
+# Regulations.gov Comment Downloader
 
 A Python script to download public comments (and PDFs) for any docket on [regulations.gov](https://www.regulations.gov).
 
