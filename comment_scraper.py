@@ -7,26 +7,29 @@ from tqdm import tqdm
 
 # --- SETTINGS ---
 API_KEY = "YOUR_API_KEY_HERE"
-DOCKET_ID = os.getenv("DOCKET_ID", "DHS-2025-0013")
+DOCKET_ID = "DHS-2025-0013"
 COMMENTS_PER_PAGE = 250
 PAGES_PER_HOUR = 3
 BATCH_FOLDER = f"{DOCKET_ID}_batches"
 ATTACHMENT_FOLDER = os.path.join(BATCH_FOLDER, "attachments")
-CHECKPOINT_FILE = f"{DOCKET_ID}_checkpoint.txt"
+MASTER_CSV = os.path.join(BATCH_FOLDER, f"{DOCKET_ID}_master.csv")
 BASE_URL = "https://api.regulations.gov/v4/comments"
 
 # --- SETUP ---
 os.makedirs(BATCH_FOLDER, exist_ok=True)
 os.makedirs(ATTACHMENT_FOLDER, exist_ok=True)
 
-# --- Load checkpoint or start fresh ---
-if os.path.exists(CHECKPOINT_FILE):
-    with open(CHECKPOINT_FILE, "r") as f:
-        start_page = int(f.read().strip())
-        batch_number = ((start_page - 1) // PAGES_PER_HOUR) + 1
+start_page = 1
+batch_number = 1
+
+# Load existing master file if it exists
+if os.path.exists(MASTER_CSV):
+    existing_df = pd.read_csv(MASTER_CSV)
+    existing_ids = set(existing_df["comment_id"].astype(str))
+    print(f"📂 Loaded {len(existing_ids)} existing comment IDs from master.")
 else:
-    start_page = 1
-    batch_number = 1
+    existing_df = pd.DataFrame()
+    existing_ids = set()
 
 # --- Main loop ---
 while True:
@@ -37,7 +40,6 @@ while True:
     print(f"\n⏳ Starting Batch #{batch_number} at {hour_start.strftime('%H:%M:%S')} (Pages: {list(pages)})")
 
     for page in tqdm(pages, desc=f"📄 Batch {batch_number} - Pages"):
-        # Step 1: Get comment IDs for this page
         params = {
             "filter[docketId]": DOCKET_ID,
             "api_key": API_KEY,
@@ -55,8 +57,10 @@ while True:
             print("✅ No more data available.")
             break
 
-        # Step 2: For each comment ID, get full text and download PDF if needed
         for cid in ids:
+            if cid in existing_ids:
+                continue
+
             print(f"🔍 Processing comment {cid}")
             detail_url = f"https://api.regulations.gov/v4/comments/{cid}?include=attachments&api_key={API_KEY}"
             r_detail = requests.get(detail_url)
@@ -71,7 +75,6 @@ while True:
             org = attr.get("organization")
             date = attr.get("postedDate")
 
-            # Step 3: Download attachment if "See attached file"
             pdf_path = ""
             if "See attached file" in comment_text and "included" in data:
                 for item in data["included"]:
@@ -100,26 +103,27 @@ while True:
                 "pdf_file_path": pdf_path
             })
 
-            time.sleep(0.2)  # polite delay
+            time.sleep(0.2)
 
-    # Step 4: Save batch
+    # Save new comments to master
     if batch_results:
-        out_file = os.path.join(BATCH_FOLDER, f"{DOCKET_ID}_batch_{batch_number}.csv")
-        pd.DataFrame(batch_results).to_csv(out_file, index=False)
-        print(f"💾 Saved batch #{batch_number} — {len(batch_results)} full comments")
+        new_df = pd.DataFrame(batch_results)
+        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+        combined_df.to_csv(MASTER_CSV, index=False)
+        print(f"💾 Updated master CSV with {len(new_df)} new comments. Total: {len(combined_df)}")
 
-    # Update checkpoint
-    start_page += PAGES_PER_HOUR
-    with open(CHECKPOINT_FILE, "w") as f:
-        f.write(str(start_page))
+        existing_df = combined_df
+        existing_ids.update(new_df["comment_id"].astype(str))
+    else:
+        print("📭 No new comments found in this batch.")
+
     batch_number += 1
+    start_page += PAGES_PER_HOUR
 
-    # Stop if there were fewer than expected
     if len(batch_results) < COMMENTS_PER_PAGE * PAGES_PER_HOUR:
         print("🏁 Final batch smaller than full size — ending.")
         break
 
-    # Wait 1 hour
     elapsed = (datetime.datetime.now() - hour_start).seconds
     wait_time = max(0, 3600 - elapsed)
     print(f"🕒 Waiting {wait_time} seconds before next batch...")
@@ -128,4 +132,3 @@ while True:
         for _ in range(wait_time):
             time.sleep(1)
             t.update(1)
-
