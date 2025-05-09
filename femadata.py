@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 # --- SETTINGS ---
 API_KEY = "fj0xunVdoRcmeloQHEgFkci8g6O2qiIslDlRyXP1"
-DOCKET_ID = "DHS-2025-0013"
+DOCKET_ID = os.getenv("DOCKET_ID", "DHS-2025-0013")
 COMMENTS_PER_PAGE = 250
 PAGES_PER_HOUR = 3
 BATCH_FOLDER = f"{DOCKET_ID}_batches"
