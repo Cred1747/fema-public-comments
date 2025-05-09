@@ -6,7 +6,7 @@ import datetime
 from tqdm import tqdm
 
 # --- SETTINGS ---
-API_KEY = "fj0xunVdoRcmeloQHEgFkci8g6O2qiIslDlRyXP1"
+API_KEY = "YOUR_API_KEY_HERE"
 DOCKET_ID = os.getenv("DOCKET_ID", "DHS-2025-0013")
 COMMENTS_PER_PAGE = 250
 PAGES_PER_HOUR = 3
