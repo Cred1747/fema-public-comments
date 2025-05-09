@@ -57,6 +57,7 @@ while True:
 
         # Step 2: For each comment ID, get full text and download PDF if needed
         for cid in ids:
+            print(f"🔍 Processing comment {cid}")
             detail_url = f"https://api.regulations.gov/v4/comments/{cid}?include=attachments&api_key={API_KEY}"
             r_detail = requests.get(detail_url)
             if r_detail.status_code != 200:
