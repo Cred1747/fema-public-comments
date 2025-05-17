@@ -38,19 +38,19 @@ python comment_scraper.py --docket-id DHS-2025-0013
 ```
 
 This will:
-- Fetch 3 pages (750 comments max) per hour
+- Fetch 4 pages (1000 comments max) per hour
 - Download PDFs for comments that say "See attached file"
-- Save a combined deduplicated `DHS-2025-0013_master.csv`
+- Save a combined deduplicated `DOCKETID-master.csv`
 
----
+-
 
 ## 📂 Output
 
 Each batch appends new comments to:
 
 ```
-DHS-2025-0013_batches/
-├── DHS-2025-0013_master.csv
+DOCKETID_batches/
+├── DOCKETID_master.csv
 └── attachments/
     ├── comment123_attachment1.pdf
 ```
@@ -62,7 +62,7 @@ The script will resume automatically and avoid duplicates.
 ## 🕒 API Rate Limits
 
 The script is designed to stay within the 1000 API calls/hour limit by:
-- Fetching 3 pages per hour (750 comments max)
+- Fetching 4 pages per hour (1000 comments max)
 - Skipping any previously downloaded comment IDs
 
 You can adjust `PAGES_PER_HOUR` in the script if needed.
